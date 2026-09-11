@@ -1,0 +1,47 @@
+name: Sync upstream and reapply zh-CN
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event_name != 'push' || github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout localization source
+        uses: actions/checkout@v4
+        with:
+          ref: localization
+          path: l10n
+
+      - name: Clone upstream
+        run: git clone --depth 1 https://github.com/Kizzuwatnaa/DLSS5-Autopilot.git work
+
+      - name: Reapply Chinese localization
+        run: python l10n/tools/apply_localization.py work
+
+      - name: Publish upstream mirror branch
+        working-directory: work
+        run: |
+          git remote add fork https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          git push fork HEAD:refs/heads/upstream --force
+
+      - name: Publish localized main
+        working-directory: work
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No localization changes to commit"
+          else
+            git commit -m "zh-CN: reapply localization on upstream $(git rev-parse --short HEAD) [skip ci]"
+          fi
+          git push fork HEAD:refs/heads/main --force
