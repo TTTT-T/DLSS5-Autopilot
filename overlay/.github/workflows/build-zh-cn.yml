@@ -1,0 +1,40 @@
+name: Build zh-CN EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build tools
+        run: python -m pip install --upgrade pyinstaller certifi
+      - name: Build
+        shell: pwsh
+        run: |
+          python -m PyInstaller --onefile --windowed --noupx `
+            --name dlss5-autopilot-zh-CN `
+            --version-file version_info.txt `
+            --icon dlss5-autopilot.ico `
+            --distpath dist `
+            --noconfirm `
+            dlss5_autopilot.py
+      - name: Hash
+        shell: pwsh
+        run: Get-FileHash dist/dlss5-autopilot-zh-CN.exe -Algorithm SHA256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dlss5-autopilot-zh-CN
+          path: dist/dlss5-autopilot-zh-CN.exe
+          if-no-files-found: error
