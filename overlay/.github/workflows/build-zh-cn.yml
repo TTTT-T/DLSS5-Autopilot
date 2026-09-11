@@ -1,4 +1,4 @@
-name: Build zh-CN EXE
+name: Build and publish zh-CN EXE
 
 on:
   workflow_dispatch:
@@ -8,18 +8,58 @@ on:
       - 'docs/**'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install build tools
         run: python -m pip install --upgrade pyinstaller certifi
+
+      - name: Syntax and import smoke tests
+        shell: pwsh
+        run: |
+          python -m compileall -q dlss5_autopilot.py core
+          python -c "import dlss5_autopilot; import core.gui; import core.i18n_zh_cn"
+
+      - name: zh-CN Tkinter wrapper regression test
+        shell: pwsh
+        run: |
+          @'
+          from core.i18n_zh_cn import _wrap_init
+
+          calls = []
+          def original(self, *args, **kwargs):
+              calls.append((args, kwargs))
+              return "ok"
+
+          wrapped = _wrap_init(original)
+          result = wrapped(object(), "master", "ttk::separator", {"text": "Start"})
+          assert result == "ok"
+          args, kwargs = calls[-1]
+          assert len(args) == 3, args
+          assert args[0] == "master"
+          assert args[1] == "ttk::separator"
+          assert args[2]["text"] == "开始", args[2]
+
+          calls.clear()
+          result = wrapped(object(), "master", {"text": "Install"}, text="Cancel")
+          assert result == "ok"
+          args, kwargs = calls[-1]
+          assert args[1]["text"] == "安装", args
+          assert kwargs["text"] == "取消", kwargs
+          print("zh-CN Tkinter wrapper regression test passed")
+          '@ | python -
+
       - name: Build
         shell: pwsh
         run: |
@@ -30,11 +70,60 @@ jobs:
             --distpath dist `
             --noconfirm `
             dlss5_autopilot.py
+
       - name: Hash
         shell: pwsh
-        run: Get-FileHash dist/dlss5-autopilot-zh-CN.exe -Algorithm SHA256
+        run: |
+          $hash = (Get-FileHash dist/dlss5-autopilot-zh-CN.exe -Algorithm SHA256).Hash.ToLower()
+          "SHA256  dlss5-autopilot-zh-CN.exe  $hash" | Out-File -Encoding ascii dist/SHA256.txt
+          Get-Content dist/SHA256.txt
+
       - uses: actions/upload-artifact@v4
         with:
           name: dlss5-autopilot-zh-CN
-          path: dist/dlss5-autopilot-zh-CN.exe
+          path: |
+            dist/dlss5-autopilot-zh-CN.exe
+            dist/SHA256.txt
           if-no-files-found: error
+
+      - name: Publish rolling latest release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f zh-CN-latest $env:GITHUB_SHA
+          git push origin refs/tags/zh-CN-latest --force
+
+          $notes = @"
+          DLSS5-Autopilot 简体中文版自动构建。
+
+          - 基于当前 main 分支自动编译
+          - 发布前必须通过语法、导入和汉化 Tkinter 包装回归测试
+          - main 会定期同步上游并重新应用汉化
+          - 下载 `dlss5-autopilot-zh-CN.exe` 即可
+          - `SHA256.txt` 用于校验文件完整性
+
+          Commit: $env:GITHUB_SHA
+          "@
+
+          if (gh release view zh-CN-latest --repo $env:GITHUB_REPOSITORY *> $null) {
+            gh release edit zh-CN-latest `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "DLSS5-Autopilot 简体中文版（最新版）" `
+              --notes $notes `
+              --latest
+          } else {
+            gh release create zh-CN-latest `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "DLSS5-Autopilot 简体中文版（最新版）" `
+              --notes $notes `
+              --latest
+          }
+
+          gh release upload zh-CN-latest `
+            dist/dlss5-autopilot-zh-CN.exe `
+            dist/SHA256.txt `
+            --repo $env:GITHUB_REPOSITORY `
+            --clobber
