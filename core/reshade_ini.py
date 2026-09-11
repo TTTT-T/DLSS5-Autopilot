@@ -137,6 +137,7 @@ def write_reshade_ini(game_dir: Path, provider: int = 3) -> None:
     """Create/update ReShade.ini without touching the user's own settings."""
     p = game_dir / "ReShade.ini"
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     ini.set_default("GENERAL", "EffectSearchPaths", r".\reshade-shaders\Shaders\**")
     ini.set_default("GENERAL", "TextureSearchPaths", r".\reshade-shaders\Textures\**")
     ini.set_default("GENERAL", "PresetPath", r".\ReShadePreset.ini")
@@ -213,6 +214,7 @@ def set_overlay_key(game_dir: Path, vk: int) -> None:
     if not p.is_file():
         return          # nothing to edit; the install writes it before this
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     if len(ini.sections) == 1 and not ini.sections[0][1]:
         # Load swallows an OSError and hands back an empty Ini (one root
         # section, no keys). Saving that would replace every ReShade
@@ -267,6 +269,7 @@ def write_addon_only_ini(dir_: Path) -> None:
     r"""For the host64\ folder: load add-ons only, no shaders."""
     p = dir_ / "ReShade.ini"
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     ini.set_default("ADDON", "AddonPath", ".\\")
     ini.save(p)
 
@@ -281,6 +284,7 @@ def write_shader_paths(game_dir: Path) -> None:
     """
     p = game_dir / "ReShade.ini"
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     ini.set_default("GENERAL", "EffectSearchPaths", r".\reshade-shaders\Shaders\**")
     ini.set_default("GENERAL", "TextureSearchPaths", r".\reshade-shaders\Textures\**")
     ini.set_default("GENERAL", "PresetPath", r".\ReShadePreset.ini")
@@ -297,6 +301,7 @@ def enable_renodx_dlss_nr(game_dir: Path) -> None:
     """
     p = game_dir / "ReShade.ini"
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     ini.set_default("RENODX-DLSS", "NeuralRenderingEnabled", "1")
     ini.save(p)
 
@@ -305,6 +310,7 @@ def write_preset(game_dir: Path, provider: int = 3) -> None:
     """Put the provider technique ABOVE DLSS5_Feed in the preset."""
     p = game_dir / "ReShadePreset.ini"
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     tech = PROVIDERS.get(provider, (None, None, False))[1]
     ours = ([tech] if tech else []) + [FEED_TECHNIQUE]
     for key in ("Techniques", "TechniqueSorting"):
@@ -340,6 +346,7 @@ def remove_our_techniques(game_dir: Path, provider: int | None = None) -> None:
     else:
         ours = {FEED_TECHNIQUE} | {v[1] for k, v in PROVIDERS.items() if v[1] and k in (3, 4)}
     ini = Ini.load(p)
+    ini.set_default("OVERLAY", "Language", "zh-CN")
     changed = False
     for key in ("Techniques", "TechniqueSorting"):
         raw = ini.get("", key)
@@ -353,25 +360,6 @@ def remove_our_techniques(game_dir: Path, provider: int | None = None) -> None:
         ini.save(p)
 
 
-# Chinese edition preference
-DEFAULT_LANGUAGE = "zh-CN"
 
 
-# Chinese edition preference
-DEFAULT_LANGUAGE = "zh-CN"
 
-
-# Chinese edition preference
-DEFAULT_LANGUAGE = "zh-CN"
-
-
-# Chinese edition preference
-DEFAULT_LANGUAGE = "zh-CN"
-
-
-# Chinese edition preference
-DEFAULT_LANGUAGE = "zh-CN"
-
-
-# Chinese edition preference
-DEFAULT_LANGUAGE = "zh-CN"
