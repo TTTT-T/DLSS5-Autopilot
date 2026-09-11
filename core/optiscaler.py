@@ -51,8 +51,7 @@ from pathlib import Path
 
 from . import net, sources
 
-API = "https://api.github.com/repos/Dagherbou/OptiScaler_DLSSNR/releases/latest"
-
+API = "https://api.github.com/repos/TTTT-T/DLSS5-Autopilot/releases/tags/optiscaler-zh-CN-latest"
 # y4my4my4m's fork of the same build: multi-frame generation on RTX 40
 # and its own neural-pass changes, published as development builds in .7z
 # archives (issue #21). Windows' own tar.exe (bsdtar, Windows 10 1803 and later)
