@@ -30,23 +30,42 @@
     }
    }
   },
-  "cyberpunk2077.exe": {
+  "blackops.exe": {
    "drivers": {
     "616.56": {
      "failed": 0,
      "worked": 1
     }
    },
+   "name": "Call of Duty: Black Ops",
+   "routes": {
+    "feeder": {
+     "failed": 0,
+     "worked": 1
+    }
+   }
+  },
+  "cyberpunk2077.exe": {
+   "drivers": {
+    "616.56": {
+     "failed": 1,
+     "worked": 1
+    }
+   },
    "name": "Cyberpunk 2077",
    "routes": {
     "optiscaler": {
-     "failed": 0,
+     "failed": 1,
      "worked": 1
     }
    }
   },
   "dawnwalker.exe": {
    "drivers": {
+    "616.56": {
+     "failed": 0,
+     "worked": 1
+    },
     "616.64": {
      "failed": 0,
      "worked": 1
@@ -56,7 +75,7 @@
    "routes": {
     "optiscaler": {
      "failed": 0,
-     "worked": 1
+     "worked": 2
     }
    }
   },
@@ -130,6 +149,21 @@
    "name": "PUBG: BATTLEGROUNDS",
    "routes": {
     "optiscaler": {
+     "failed": 1,
+     "worked": 0
+    }
+   }
+  },
+  "fallout3.exe": {
+   "drivers": {
+    "616.92": {
+     "failed": 1,
+     "worked": 0
+    }
+   },
+   "name": "Fallout 3 - Game of the Year Edition",
+   "routes": {
+    "feeder": {
      "failed": 1,
      "worked": 0
     }
@@ -300,6 +334,21 @@
     }
    }
   },
+  "nms.exe": {
+   "drivers": {
+    "616.92": {
+     "failed": 1,
+     "worked": 0
+    }
+   },
+   "name": "No Man's Sky",
+   "routes": {
+    "bridge": {
+     "failed": 1,
+     "worked": 0
+    }
+   }
+  },
   "painkiller.exe": {
    "drivers": {
     "616.64": {
@@ -439,6 +488,6 @@
    }
   }
  },
- "generated": "2026-09-11T14:24:03Z",
- "reports": 38
+ "generated": "2026-09-11T20:37:56Z",
+ "reports": 43
 }
