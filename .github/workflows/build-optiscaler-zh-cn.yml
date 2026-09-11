@@ -1,0 +1,87 @@
+name: Build localized OptiScaler zh-CN
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-optiscaler-zh-cn.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout localized OptiScaler source
+        uses: actions/checkout@v4
+        with:
+          repository: Moeblack/OptiScaler_DLSSNR
+          ref: 4417c0ee59c880ae7f9d8f77da43d411dfbaba59
+          submodules: recursive
+          path: optiscaler-src
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release
+        shell: pwsh
+        working-directory: optiscaler-src
+        run: msbuild /m /p:Configuration=Release . /verbosity:minimal
+
+      - name: Verify localization payload
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'optiscaler-src/OptiScaler_zh.ini')) { throw 'OptiScaler_zh.ini missing' }
+          if (!(Test-Path 'optiscaler-src/x64/Release/a/OptiScaler.dll')) { throw 'OptiScaler.dll missing' }
+          $text = Get-Content 'optiscaler-src/OptiScaler_zh.ini' -Raw -Encoding UTF8
+          foreach ($needle in @('Enable Neural Rendering','Frame Generation','Advanced Settings','Logging')) {
+            if ($text -notmatch [regex]::Escape($needle)) { throw "translation dictionary missing: $needle" }
+          }
+
+      - name: Package localized binary
+        shell: pwsh
+        run: |
+          $out = 'optiscaler-src/x64/Release/a'
+          Copy-Item 'optiscaler-src/OptiScaler_zh.ini' "$out/OptiScaler_zh.ini" -Force
+          7z a -r 'OptiScaler-DLSSNR-zh-CN.7z' "$out/*"
+
+      - name: Package corresponding source
+        shell: pwsh
+        run: |
+          Push-Location optiscaler-src
+          Get-ChildItem -Force -Directory -Filter .git -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Pop-Location
+          Compress-Archive -Path 'optiscaler-src/*' -DestinationPath 'OptiScaler-DLSSNR-zh-CN-source.zip' -CompressionLevel Optimal -Force
+
+      - name: Publish rolling localized OptiScaler release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git init release-tag
+          Push-Location release-tag
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add origin "https://x-access-token:$env:GH_TOKEN@github.com/$env:GITHUB_REPOSITORY.git"
+          git fetch origin main --depth=1
+          git checkout --detach FETCH_HEAD
+          git tag -f optiscaler-zh-CN-latest
+          git push origin refs/tags/optiscaler-zh-CN-latest --force
+          Pop-Location
+
+          $notes = @"
+          OptiScaler 简体中文滚动构建。
+
+          - 本构建基于 Moeblack/OptiScaler_DLSSNR 提交 4417c0ee59c880ae7f9d8f77da43d411dfbaba59
+          - 包含 PR #26 的中文本地化实现和 OptiScaler_zh.ini
+          - 中文词典随 DLL 一起安装，OptiScaler 菜单会在运行时读取
+          - 同时附带对应源代码压缩包，满足 GPL-3.0 源代码可获得性要求
+          "@
+
+          if (gh release view optiscaler-zh-CN-latest --repo $env:GITHUB_REPOSITORY *> $null) {
+            gh release edit optiscaler-zh-CN-latest --repo $env:GITHUB_REPOSITORY --title 'OptiScaler 简体中文版（最新版）' --notes $notes
+          } else {
+            gh release create optiscaler-zh-CN-latest --repo $env:GITHUB_REPOSITORY --title 'OptiScaler 简体中文版（最新版）' --notes $notes
+          }
+          gh release upload optiscaler-zh-CN-latest 'OptiScaler-DLSSNR-zh-CN.7z' 'OptiScaler-DLSSNR-zh-CN-source.zip' --repo $env:GITHUB_REPOSITORY --clobber
