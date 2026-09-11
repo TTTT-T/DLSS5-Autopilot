@@ -25,6 +25,41 @@ jobs:
       - name: Install build tools
         run: python -m pip install --upgrade pyinstaller certifi
 
+      - name: Syntax and import smoke tests
+        shell: pwsh
+        run: |
+          python -m compileall -q dlss5_autopilot.py core
+          python -c "import dlss5_autopilot; import core.gui; import core.i18n_zh_cn"
+
+      - name: zh-CN Tkinter wrapper regression test
+        shell: pwsh
+        run: |
+          @'
+          from core.i18n_zh_cn import _wrap_init
+
+          calls = []
+          def original(self, *args, **kwargs):
+              calls.append((args, kwargs))
+              return "ok"
+
+          wrapped = _wrap_init(original)
+          result = wrapped(object(), "master", "ttk::separator", {"text": "Start"})
+          assert result == "ok"
+          args, kwargs = calls[-1]
+          assert len(args) == 3, args
+          assert args[0] == "master"
+          assert args[1] == "ttk::separator"
+          assert args[2]["text"] == "开始", args[2]
+
+          calls.clear()
+          result = wrapped(object(), "master", {"text": "Install"}, text="Cancel")
+          assert result == "ok"
+          args, kwargs = calls[-1]
+          assert args[1]["text"] == "安装", args
+          assert kwargs["text"] == "取消", kwargs
+          print("zh-CN Tkinter wrapper regression test passed")
+          '@ | python -
+
       - name: Build
         shell: pwsh
         run: |
@@ -65,6 +100,7 @@ jobs:
           DLSS5-Autopilot 简体中文版自动构建。
 
           - 基于当前 main 分支自动编译
+          - 发布前必须通过语法、导入和汉化 Tkinter 包装回归测试
           - main 会定期同步上游并重新应用汉化
           - 下载 `dlss5-autopilot-zh-CN.exe` 即可
           - `SHA256.txt` 用于校验文件完整性
