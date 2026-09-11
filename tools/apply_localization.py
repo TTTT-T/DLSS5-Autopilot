@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OVERLAY = ROOT / "overlay"
+OPTISCALER_ZH_API = "https://api.github.com/repos/TTTT-T/DLSS5-Autopilot/releases/tags/optiscaler-zh-CN-latest"
 
 
 def copy_overlay(dst: Path):
@@ -23,7 +24,6 @@ def patch_gui(dst: Path):
     p = dst / "core" / "gui.py"
     s = p.read_text(encoding="utf-8")
     marker = "from .i18n_zh_cn import install as _install_zh_cn; _install_zh_cn()"
-    # Collapse accidental duplicate injections, then keep exactly one copy.
     s = re.sub(r"(?:\n\s*" + re.escape(marker) + r")+", "", s)
     needle = "from tkinter import filedialog, messagebox, ttk"
     if needle not in s:
@@ -37,32 +37,36 @@ def patch_reshade(dst: Path):
     if not p.exists():
         return
     s = p.read_text(encoding="utf-8")
-
-    # Remove the old localization helper block no matter how many times an
-    # earlier non-idempotent version appended it.
     s = re.sub(
         r"\n*# Chinese edition preference\nDEFAULT_LANGUAGE = \"zh-CN\"\n?",
         "\n",
         s,
     )
-
-    # ReShade supports native localization through [OVERLAY] Language.
-    # Set it as a default in every helper that creates/updates ReShade.ini,
-    # so existing user choices are preserved while fresh installs use zh-CN.
     needle = 'ini = Ini.load(p)'
-    language_line = '    ini.set_default("OVERLAY", "Language", "zh-CN")'
     out = []
     lines = s.splitlines()
     for i, line in enumerate(lines):
         out.append(line)
         if line.strip() == needle:
-            # Do not add a duplicate if the next functional line already sets it.
             lookahead = "\n".join(lines[i + 1:i + 5])
             if 'set_default("OVERLAY", "Language", "zh-CN")' not in lookahead:
                 indent = line[: len(line) - len(line.lstrip())]
                 out.append(indent + 'ini.set_default("OVERLAY", "Language", "zh-CN")')
     s = "\n".join(out) + ("\n" if s.endswith("\n") else "")
     p.write_text(s, encoding="utf-8")
+
+
+def patch_optiscaler(dst: Path):
+    p = dst / "core" / "optiscaler.py"
+    if not p.exists():
+        return
+    s = p.read_text(encoding="utf-8")
+    pattern = r'^API\s*=\s*"https://api\.github\.com/repos/[^\"]+/releases(?:/latest|/tags/[^\"]+)"\s*$'
+    repl = f'API = "{OPTISCALER_ZH_API}"'
+    s2, n = re.subn(pattern, repl, s, count=1, flags=re.M)
+    if n != 1:
+        raise RuntimeError("upstream optiscaler.py changed: default API marker not found")
+    p.write_text(s2, encoding="utf-8")
 
 
 def verify(dst: Path):
@@ -81,6 +85,10 @@ def verify(dst: Path):
     if 'set_default("OVERLAY", "Language", "zh-CN")' not in reshade:
         raise RuntimeError("ReShade zh-CN language default was not applied")
 
+    opti = (dst / "core" / "optiscaler.py").read_text(encoding="utf-8")
+    if f'API = "{OPTISCALER_ZH_API}"' not in opti:
+        raise RuntimeError("default OptiScaler source is not the localized rolling release")
+
 
 def main():
     if len(sys.argv) != 2:
@@ -89,6 +97,7 @@ def main():
     copy_overlay(dst)
     patch_gui(dst)
     patch_reshade(dst)
+    patch_optiscaler(dst)
     verify(dst)
 
 
