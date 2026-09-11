@@ -371,3 +371,7 @@ DEFAULT_LANGUAGE = "zh-CN"
 
 # Chinese edition preference
 DEFAULT_LANGUAGE = "zh-CN"
+
+
+# Chinese edition preference
+DEFAULT_LANGUAGE = "zh-CN"

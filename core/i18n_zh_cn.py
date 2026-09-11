@@ -113,9 +113,9 @@ def _patch(cls, name, factory):
 
 
 def _wrap_init(old):
-    def wrapped(self, *args, **kw):
-        translated_args = tuple(_tx_kwargs(arg) if isinstance(arg, dict) else arg for arg in args)
-        return old(self, *translated_args, **_tx_kwargs(kw))
+    def wrapped(self, master=None, cnf=None, **kw):
+        if isinstance(cnf, dict): cnf = _tx_kwargs(cnf)
+        return old(self, master, cnf, **_tx_kwargs(kw))
     return wrapped
 
 
