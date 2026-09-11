@@ -355,3 +355,7 @@ def remove_our_techniques(game_dir: Path, provider: int | None = None) -> None:
 
 # Chinese edition preference
 DEFAULT_LANGUAGE = "zh-CN"
+
+
+# Chinese edition preference
+DEFAULT_LANGUAGE = "zh-CN"
