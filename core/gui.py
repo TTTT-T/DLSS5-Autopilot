@@ -21,6 +21,8 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from .i18n_zh_cn import install as _install_zh_cn; _install_zh_cn()
+
 from . import (anticheat, autotune, community, components, diagnose, dlss,
                dxvk, feedcfg, reengine, wincrash,
                games, gpu, library, pe, profiles, video,

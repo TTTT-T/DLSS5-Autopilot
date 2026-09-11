@@ -351,3 +351,7 @@ def remove_our_techniques(game_dir: Path, provider: int | None = None) -> None:
             changed = True
     if changed:
         ini.save(p)
+
+
+# Chinese edition preference
+DEFAULT_LANGUAGE = "zh-CN"
