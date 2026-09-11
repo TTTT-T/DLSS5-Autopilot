@@ -60,6 +60,34 @@ jobs:
           print("zh-CN Tkinter wrapper regression test passed")
           '@ | python -
 
+      - name: Visible zh-CN coverage regression test
+        shell: pwsh
+        run: |
+          @'
+          from core.i18n_zh_cn import tr
+
+          cases = {
+              "dlss5 for the games you have": "让你已有的游戏用上 DLSS 5",
+              "your library": "游戏库",
+              "settings and go": "设置并安装",
+              "[ scan games ]": "[ 扫描游戏 ]",
+              "[ open log file ]": "[ 打开日志文件 ]",
+              "[ report a bug ]": "[ 报告问题 ]",
+              "[ suggest a feature ]": "[ 建议新功能 ]",
+              "[ how it works ]": "[ 工作原理 ]",
+              "[ update now ]": "[ 立即更新 ]",
+              "!! before you get your hopes up": "!! 使用前先说明",
+          }
+          for src, expected in cases.items():
+              got = tr(src)
+              assert got == expected, (src, got, expected)
+
+          dynamic = tr("New DLSS5 driver detected - 591.86 available for download")
+          assert "检测到新的 DLSS5 驱动" in dynamic, dynamic
+          assert "可下载" in dynamic, dynamic
+          print("visible zh-CN coverage regression test passed")
+          '@ | python -
+
       - name: Build
         shell: pwsh
         run: |
@@ -100,7 +128,7 @@ jobs:
           DLSS5-Autopilot 简体中文版自动构建。
 
           - 基于当前 main 分支自动编译
-          - 发布前必须通过语法、导入和汉化 Tkinter 包装回归测试
+          - 发布前必须通过语法、导入、Tkinter 兼容和可见中文覆盖回归测试
           - main 会定期同步上游并重新应用汉化
           - 下载 `dlss5-autopilot-zh-CN.exe` 即可
           - `SHA256.txt` 用于校验文件完整性
