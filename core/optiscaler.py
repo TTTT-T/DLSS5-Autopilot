@@ -157,10 +157,20 @@ def resolve(build: str = "") -> tuple[str, str]:
     if build:
         raise ValueError(f"unknown OptiScaler build {build!r}")
     rel = sources._json(API)
-    for a in rel.get("assets", []):
-        if a["name"].lower().endswith((".zip", ".7z")):
-            return rel.get("tag_name", "?"), a["browser_download_url"]
-    raise RuntimeError("The OptiScaler DLSS-NR release has no .zip asset.")
+    assets = [a for a in rel.get("assets", [])
+              if a.get("name", "").lower().endswith((".zip", ".7z"))
+              and "source" not in a.get("name", "").lower()]
+    assets.sort(key=lambda a: a.get("updated_at") or a.get("created_at") or "",
+                reverse=True)
+    for a in assets:
+        tag = rel.get("tag_name", "?")
+        # Rolling releases replace the asset under the same tag/name. Include
+        # GitHub's asset id in the cache key so an updated runtime cannot reuse
+        # a stale archive already downloaded by an older build.
+        if "TTTT-T/DLSS5-Autopilot" in API and a.get("id"):
+            tag = f"{tag}-{a['id']}"
+        return tag, a["browser_download_url"]
+    raise RuntimeError("The OptiScaler DLSS-NR release has no runtime .zip/.7z asset.")
 
 
 def archive_name(build: str = "") -> str:
