@@ -24,7 +24,7 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build Release
+      - name: Build localized DLL
         shell: pwsh
         working-directory: optiscaler-src
         run: msbuild /m /p:Configuration=Release . /verbosity:minimal
@@ -33,55 +33,79 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path 'optiscaler-src/OptiScaler_zh.ini')) { throw 'OptiScaler_zh.ini missing' }
-          if (!(Test-Path 'optiscaler-src/x64/Release/a/OptiScaler.dll')) { throw 'OptiScaler.dll missing' }
+          if (!(Test-Path 'optiscaler-src/x64/Release/a/OptiScaler.dll')) { throw 'localized OptiScaler.dll missing' }
           $text = Get-Content 'optiscaler-src/OptiScaler_zh.ini' -Raw -Encoding UTF8
           foreach ($needle in @('Enable Neural Rendering','Frame Generation','Advanced Settings','Logging')) {
             if ($text -notmatch [regex]::Escape($needle)) { throw "translation dictionary missing: $needle" }
           }
 
-      - name: Package localized binary
+      - name: Build clean runtime package from official v0.2.0
         shell: pwsh
         run: |
-          $out = 'optiscaler-src/x64/Release/a'
-          Copy-Item 'optiscaler-src/OptiScaler_zh.ini' "$out/OptiScaler_zh.ini" -Force
-          7z a -r 'OptiScaler-DLSSNR-zh-CN.7z' "$out/*"
+          $official = 'https://github.com/Dagherbou/OptiScaler_DLSSNR/releases/download/v0.2.0-dlssnr/OptiScaler-DLSSNR-v0.2.0.zip'
+          Invoke-WebRequest -Uri $official -OutFile official.zip
+          Expand-Archive -Path official.zip -DestinationPath runtime -Force
+
+          $main = Get-ChildItem runtime -Recurse -File -Filter OptiScaler.dll | Select-Object -First 1
+          if (!$main) { throw 'official package has no OptiScaler.dll' }
+          $root = $main.Directory.FullName
+
+          Copy-Item 'optiscaler-src/x64/Release/a/OptiScaler.dll' (Join-Path $root 'OptiScaler.dll') -Force
+          Copy-Item 'optiscaler-src/OptiScaler_zh.ini' (Join-Path $root 'OptiScaler_zh.ini') -Force
+
+          if (!(Test-Path (Join-Path $root 'nvngx.dll_dlssnr.dll'))) { throw 'official runtime forwarder missing' }
+          if (!(Test-Path (Join-Path $root 'OptiScaler_zh.ini'))) { throw 'localized dictionary missing from runtime root' }
+          if ((Get-Item (Join-Path $root 'OptiScaler.dll')).Length -lt 1MB) { throw 'localized OptiScaler.dll is unexpectedly small' }
+
+          $count = (Get-ChildItem $root -Recurse -File).Count
+          Write-Host "runtime file count: $count"
+          if ($count -lt 5 -or $count -gt 500) { throw "unexpected runtime file count: $count" }
+
+          Compress-Archive -Path (Join-Path $root '*') -DestinationPath 'OptiScaler-DLSSNR-zh-CN.zip' -CompressionLevel Optimal -Force
 
       - name: Package corresponding source
         shell: pwsh
         run: |
           Push-Location optiscaler-src
           Get-ChildItem -Force -Directory -Filter .git -Recurse | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          tar -czf ../OptiScaler-DLSSNR-zh-CN-source.tar.gz .
           Pop-Location
-          Compress-Archive -Path 'optiscaler-src/*' -DestinationPath 'OptiScaler-DLSSNR-zh-CN-source.zip' -CompressionLevel Optimal -Force
+
+      - name: Verify distributable archive
+        shell: pwsh
+        run: |
+          Expand-Archive -Path 'OptiScaler-DLSSNR-zh-CN.zip' -DestinationPath verify-runtime -Force
+          if (!(Test-Path 'verify-runtime/OptiScaler.dll')) { throw 'archive missing OptiScaler.dll at root' }
+          if (!(Test-Path 'verify-runtime/nvngx.dll_dlssnr.dll')) { throw 'archive missing nvngx.dll_dlssnr.dll at root' }
+          if (!(Test-Path 'verify-runtime/OptiScaler_zh.ini')) { throw 'archive missing OptiScaler_zh.ini at root' }
+          $count = (Get-ChildItem verify-runtime -Recurse -File).Count
+          if ($count -lt 5 -or $count -gt 500) { throw "bad packaged runtime file count: $count" }
 
       - name: Publish rolling localized OptiScaler release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git init release-tag
-          Push-Location release-tag
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git remote add origin "https://x-access-token:$env:GH_TOKEN@github.com/$env:GITHUB_REPOSITORY.git"
-          git fetch origin main --depth=1
-          git checkout --detach FETCH_HEAD
-          git tag -f optiscaler-zh-CN-latest
-          git push origin refs/tags/optiscaler-zh-CN-latest --force
-          Pop-Location
-
           $notes = @"
           OptiScaler 简体中文滚动构建。
 
-          - 本构建基于 Moeblack/OptiScaler_DLSSNR 提交 4417c0ee59c880ae7f9d8f77da43d411dfbaba59
-          - 包含 PR #26 的中文本地化实现和 OptiScaler_zh.ini
-          - 中文词典随 DLL 一起安装，OptiScaler 菜单会在运行时读取
-          - 同时附带对应源代码压缩包，满足 GPL-3.0 源代码可获得性要求
+          - 运行时文件结构基于 Dagherbou 官方 v0.2.0 发布包
+          - 仅替换为带中文本地化实现的 OptiScaler.dll，并加入 OptiScaler_zh.ini
+          - 不再发布 Visual Studio 编译目录，避免把源码/中间产物装进游戏
+          - 对应源码来自 Moeblack/OptiScaler_DLSSNR 提交 4417c0ee59c880ae7f9d8f77da43d411dfbaba59
           "@
 
           if (gh release view optiscaler-zh-CN-latest --repo $env:GITHUB_REPOSITORY *> $null) {
             gh release edit optiscaler-zh-CN-latest --repo $env:GITHUB_REPOSITORY --title 'OptiScaler 简体中文版（最新版）' --notes $notes
+            gh release delete-asset optiscaler-zh-CN-latest 'OptiScaler-DLSSNR-zh-CN.7z' --repo $env:GITHUB_REPOSITORY --yes 2>$null; $global:LASTEXITCODE = 0
+            gh release delete-asset optiscaler-zh-CN-latest 'OptiScaler-DLSSNR-zh-CN-source.zip' --repo $env:GITHUB_REPOSITORY --yes 2>$null; $global:LASTEXITCODE = 0
+            gh release delete-asset optiscaler-zh-CN-latest 'OptiScaler-DLSSNR-zh-CN.zip' --repo $env:GITHUB_REPOSITORY --yes 2>$null; $global:LASTEXITCODE = 0
+            gh release delete-asset optiscaler-zh-CN-latest 'OptiScaler-DLSSNR-zh-CN-source.tar.gz' --repo $env:GITHUB_REPOSITORY --yes 2>$null; $global:LASTEXITCODE = 0
           } else {
             gh release create optiscaler-zh-CN-latest --repo $env:GITHUB_REPOSITORY --title 'OptiScaler 简体中文版（最新版）' --notes $notes
           }
-          gh release upload optiscaler-zh-CN-latest 'OptiScaler-DLSSNR-zh-CN.7z' 'OptiScaler-DLSSNR-zh-CN-source.zip' --repo $env:GITHUB_REPOSITORY --clobber
+
+          gh release upload optiscaler-zh-CN-latest `
+            'OptiScaler-DLSSNR-zh-CN.zip' `
+            'OptiScaler-DLSSNR-zh-CN-source.tar.gz' `
+            --repo $env:GITHUB_REPOSITORY
