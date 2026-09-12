@@ -66,6 +66,15 @@ def patch_optiscaler(dst: Path):
     s2, n = re.subn(pattern, repl, s, count=1, flags=re.M)
     if n != 1:
         raise RuntimeError("upstream optiscaler.py changed: default API marker not found")
+
+    old = '''    rel = sources._json(API)\n    for a in rel.get("assets", []):\n        if a["name"].lower().endswith((".zip", ".7z")):\n            return rel.get("tag_name", "?"), a["browser_download_url"]\n    raise RuntimeError("The OptiScaler DLSS-NR release has no .zip asset.")'''
+    new = '''    rel = sources._json(API)\n    assets = [a for a in rel.get("assets", [])\n              if a.get("name", "").lower().endswith((".zip", ".7z"))\n              and "source" not in a.get("name", "").lower()]\n    assets.sort(key=lambda a: a.get("updated_at") or a.get("created_at") or "",\n                reverse=True)\n    for a in assets:\n        tag = rel.get("tag_name", "?")\n        # Rolling releases replace the asset under the same tag/name. Include\n        # GitHub's asset id in the cache key so an updated runtime cannot reuse\n        # a stale archive already downloaded by an older build.\n        if "TTTT-T/DLSS5-Autopilot" in API and a.get("id"):\n            tag = f"{tag}-{a['id']}"\n        return tag, a["browser_download_url"]\n    raise RuntimeError("The OptiScaler DLSS-NR release has no runtime .zip/.7z asset.")'''
+    if old not in s2:
+        if 'and "source" not in a.get("name", "").lower()' not in s2:
+            raise RuntimeError("upstream optiscaler.py changed: default release resolver marker not found")
+    else:
+        s2 = s2.replace(old, new, 1)
+
     p.write_text(s2, encoding="utf-8")
 
 
@@ -88,6 +97,10 @@ def verify(dst: Path):
     opti = (dst / "core" / "optiscaler.py").read_text(encoding="utf-8")
     if f'API = "{OPTISCALER_ZH_API}"' not in opti:
         raise RuntimeError("default OptiScaler source is not the localized rolling release")
+    if 'and "source" not in a.get("name", "").lower()' not in opti:
+        raise RuntimeError("localized OptiScaler resolver can still select source archives")
+    if "a.get(\"id\")" not in opti:
+        raise RuntimeError("localized OptiScaler resolver is missing cache busting")
 
 
 def main():
