@@ -88,6 +88,16 @@ jobs:
           print("visible zh-CN coverage regression test passed")
           '@ | python -
 
+      - name: Localized OptiScaler source regression test
+        shell: pwsh
+        run: |
+          @'
+          from core import optiscaler
+          expected = "https://api.github.com/repos/TTTT-T/DLSS5-Autopilot/releases/tags/optiscaler-zh-CN-latest"
+          assert optiscaler.API == expected, optiscaler.API
+          print("localized OptiScaler release source test passed")
+          '@ | python -
+
       - name: Build
         shell: pwsh
         run: |
@@ -119,16 +129,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f zh-CN-latest $env:GITHUB_SHA
-          git push origin refs/tags/zh-CN-latest --force
-
+          $ErrorActionPreference = "Stop"
           $notes = @"
           DLSS5-Autopilot 简体中文版自动构建。
 
           - 基于当前 main 分支自动编译
-          - 发布前必须通过语法、导入、Tkinter 兼容和可见中文覆盖回归测试
+          - 发布前必须通过语法、导入、Tkinter 兼容、可见中文覆盖和中文 OptiScaler 源检查
           - main 会定期同步上游并重新应用汉化
           - 下载 `dlss5-autopilot-zh-CN.exe` 即可
           - `SHA256.txt` 用于校验文件完整性
@@ -136,18 +142,23 @@ jobs:
           Commit: $env:GITHUB_SHA
           "@
 
-          if (gh release view zh-CN-latest --repo $env:GITHUB_REPOSITORY *> $null) {
-            gh release edit zh-CN-latest `
-              --repo $env:GITHUB_REPOSITORY `
-              --title "DLSS5-Autopilot 简体中文版（最新版）" `
-              --notes $notes `
-              --latest
+          $releaseJson = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/zh-CN-latest" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $releaseId = ($releaseJson | ConvertFrom-Json).id
+            gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$releaseId" `
+              -f "name=DLSS5-Autopilot 简体中文版（最新版）" `
+              -f "body=$notes" `
+              -f "target_commitish=$env:GITHUB_SHA" `
+              -f "make_latest=true" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "failed to update rolling release metadata" }
           } else {
             gh release create zh-CN-latest `
               --repo $env:GITHUB_REPOSITORY `
+              --target $env:GITHUB_SHA `
               --title "DLSS5-Autopilot 简体中文版（最新版）" `
               --notes $notes `
               --latest
+            if ($LASTEXITCODE -ne 0) { throw "failed to create rolling release" }
           }
 
           gh release upload zh-CN-latest `
@@ -155,3 +166,10 @@ jobs:
             dist/SHA256.txt `
             --repo $env:GITHUB_REPOSITORY `
             --clobber
+          if ($LASTEXITCODE -ne 0) { throw "failed to upload rolling release assets" }
+
+          $published = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/zh-CN-latest" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "failed to verify rolling release" }
+          $exe = $published.assets | Where-Object { $_.name -eq 'dlss5-autopilot-zh-CN.exe' }
+          if (-not $exe) { throw "release verification failed: EXE asset missing" }
+          Write-Host "Published EXE asset id=$($exe.id), digest=$($exe.digest)"
