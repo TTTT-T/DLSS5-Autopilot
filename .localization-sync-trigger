@@ -1,1 +1,1 @@
-2026-09-12: route default OptiScaler installs to localized rolling build.
+2026-09-12: reapply zh-CN localization with OptiScaler runtime-only resolver and cache busting.
