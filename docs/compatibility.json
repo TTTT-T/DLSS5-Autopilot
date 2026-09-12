@@ -60,6 +60,21 @@
     }
    }
   },
+  "darksoulsiii.exe": {
+   "drivers": {
+    "616.64": {
+     "failed": 0,
+     "worked": 1
+    }
+   },
+   "name": "DARK SOULS\u2122 III",
+   "routes": {
+    "feeder": {
+     "failed": 0,
+     "worked": 1
+    }
+   }
+  },
   "dawnwalker.exe": {
    "drivers": {
     "616.56": {
@@ -169,6 +184,36 @@
     }
    }
   },
+  "fallout4.exe": {
+   "drivers": {
+    "616.64": {
+     "failed": 1,
+     "worked": 0
+    }
+   },
+   "name": "Fallout 4",
+   "routes": {
+    "feeder": {
+     "failed": 1,
+     "worked": 0
+    }
+   }
+  },
+  "falloutnv.exe": {
+   "drivers": {
+    "616.64": {
+     "failed": 1,
+     "worked": 0
+    }
+   },
+   "name": "Fallout: New Vegas PCR",
+   "routes": {
+    "feeder": {
+     "failed": 1,
+     "worked": 0
+    }
+   }
+  },
   "flatout.exe": {
    "drivers": {
     "616.64": {
@@ -211,6 +256,21 @@
     "feeder": {
      "failed": 0,
      "worked": 1
+    }
+   }
+  },
+  "gow.exe": {
+   "drivers": {
+    "616.92": {
+     "failed": 1,
+     "worked": 0
+    }
+   },
+   "name": "God of War",
+   "routes": {
+    "bridge": {
+     "failed": 1,
+     "worked": 0
     }
    }
   },
@@ -269,6 +329,21 @@
    "name": "Horizon Zero Dawn\u2122 Remastered",
    "routes": {
     "optiscaler": {
+     "failed": 0,
+     "worked": 1
+    }
+   }
+  },
+  "jdm-win64-shipping.exe": {
+   "drivers": {
+    "616.92": {
+     "failed": 0,
+     "worked": 1
+    }
+   },
+   "name": "JDM: Japanese Drift Master",
+   "routes": {
+    "upstream": {
      "failed": 0,
      "worked": 1
     }
@@ -453,6 +528,21 @@
     }
    }
   },
+  "s2_sp64_ship.exe": {
+   "drivers": {
+    "616.64": {
+     "failed": 0,
+     "worked": 1
+    }
+   },
+   "name": "Call of Duty: WWII - Multiplayer",
+   "routes": {
+    "feeder": {
+     "failed": 0,
+     "worked": 1
+    }
+   }
+  },
   "skyrimse.exe": {
    "drivers": {
     "616.92": {
@@ -480,6 +570,21 @@
     "optiscaler": {
      "failed": 1,
      "worked": 0
+    }
+   }
+  },
+  "sparkingzero-win64-shipping.exe": {
+   "drivers": {
+    "616.64": {
+     "failed": 0,
+     "worked": 1
+    }
+   },
+   "name": "DRAGON BALL: Sparking! ZERO",
+   "routes": {
+    "feeder": {
+     "failed": 0,
+     "worked": 1
     }
    }
   },
@@ -535,8 +640,23 @@
      "worked": 3
     }
    }
+  },
+  "yakuzakiwami2_r.exe": {
+   "drivers": {
+    "616.92": {
+     "failed": 0,
+     "worked": 1
+    }
+   },
+   "name": "Yakuza Kiwami 2",
+   "routes": {
+    "optiscaler": {
+     "failed": 0,
+     "worked": 1
+    }
+   }
   }
  },
- "generated": "2026-09-12T10:02:56Z",
- "reports": 47
+ "generated": "2026-09-12T15:23:46Z",
+ "reports": 55
 }
