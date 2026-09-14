@@ -2,10 +2,6 @@ name: Build and publish zh-CN EXE
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
 
 permissions:
   contents: write
@@ -131,11 +127,11 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $notes = @"
-          DLSS5-Autopilot 简体中文版自动构建。
+          DLSS5-Autopilot 简体中文版手动构建。
 
-          - 基于当前 main 分支自动编译
+          - 基于当前 main 分支手动编译
           - 发布前必须通过语法、导入、Tkinter 兼容、可见中文覆盖和中文 OptiScaler 源检查
-          - main 会定期同步上游并重新应用汉化
+          - 仅在手动触发此工作流时构建并发布
           - 下载 `dlss5-autopilot-zh-CN.exe` 即可
           - `SHA256.txt` 用于校验文件完整性
 
