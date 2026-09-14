@@ -2,17 +2,12 @@ name: Sync upstream and reapply zh-CN
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 */6 * * *'
-  push:
-    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   sync:
-    if: github.event_name != 'push' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout localized main
