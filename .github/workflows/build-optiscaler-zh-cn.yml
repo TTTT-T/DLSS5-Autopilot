@@ -2,9 +2,6 @@ name: Build localized OptiScaler zh-CN
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/build-optiscaler-zh-cn.yml'
 
 permissions:
   contents: write
